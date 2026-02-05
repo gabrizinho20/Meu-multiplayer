@@ -1,93 +1,145 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
-import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/OrbitControls.js";
-
 const socket = io();
 
-// Cena
+// ===== CENA =====
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-// Câmera
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 5, 10);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0, 2, 5);
 
-// Renderizador
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Luz
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 10, 5);
-scene.add(light);
+// ===== LUZ =====
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 
-// Chão
-const groundGeo = new THREE.PlaneGeometry(100, 100);
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI / 2;
+// ===== CHÃO =====
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(500, 500),
+  new THREE.MeshLambertMaterial({ color: 0x228822 })
+);
+ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// Jogador (cubo)
-const playerGeo = new THREE.BoxGeometry(1, 2, 1);
-const playerMat = new THREE.MeshStandardMaterial({ color: 0x0000ff });
-const player = new THREE.Mesh(playerGeo, playerMat);
+// ===== PLAYER =====
+const player = new THREE.Mesh(
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshLambertMaterial({ color: 0x00aaff })
+);
 player.position.y = 1;
 scene.add(player);
 
-// Controles de câmera
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+let velocityY = 0;
+let canJump = true;
 
-// Movimento toque (celular)
-window.addEventListener("touchmove", (e) => {
-    const touch = e.touches[0];
-    const x = (touch.clientX / window.innerWidth) * 20 - 10;
-    const z = (touch.clientY / window.innerHeight) * 20 - 10;
+// ===== HUD =====
+let hp = 100;
+let kills = 0;
+const hpUI = document.getElementById("hp");
+const killsUI = document.getElementById("kills");
 
-    player.position.x = x;
-    player.position.z = z;
+// ===== TIRO =====
+function shoot() {
+  const bullet = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffff00 })
+  );
 
-    socket.emit("move", { x, y: z });
-});
+  bullet.position.copy(player.position);
+  scene.add(bullet);
 
-// Multiplayer receber outros players
-const otherPlayers = {};
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
 
-socket.on("currentPlayers", (players) => {
-    for (let id in players) {
-        if (id !== socket.id) {
-            addOtherPlayer(id, players[id]);
-        }
+  const interval = setInterval(() => {
+    bullet.position.add(dir.clone().multiplyScalar(1));
+
+    enemies.forEach((enemy, i) => {
+      if (bullet.position.distanceTo(enemy.position) < 1) {
+        scene.remove(enemy);
+        enemies.splice(i,1);
+        scene.remove(bullet);
+        clearInterval(interval);
+        kills++;
+        killsUI.textContent = kills;
+      }
+    });
+
+    if (bullet.position.length() > 300) {
+      scene.remove(bullet);
+      clearInterval(interval);
     }
-});
-
-socket.on("newPlayer", (data) => addOtherPlayer(data.id, data));
-socket.on("playerMoved", (data) => {
-    if (otherPlayers[data.id]) {
-        otherPlayers[data.id].position.x = data.x;
-        otherPlayers[data.id].position.z = data.y;
-    }
-});
-socket.on("playerDisconnected", (id) => {
-    scene.remove(otherPlayers[id]);
-    delete otherPlayers[id];
-});
-
-function addOtherPlayer(id, data) {
-    const geo = new THREE.BoxGeometry(1, 2, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(data.x, 1, data.y);
-    scene.add(mesh);
-    otherPlayers[id] = mesh;
+  }, 16);
 }
 
-// Loop do jogo
+// ===== CONSTRUIR =====
+function buildWall() {
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(3,3,1),
+    new THREE.MeshLambertMaterial({ color: 0x888888 })
+  );
+
+  wall.position.copy(player.position);
+  wall.position.z -= 5;
+  wall.position.y = 1.5;
+  scene.add(wall);
+}
+
+// ===== INIMIGOS =====
+const enemies = [];
+
+function spawnEnemy() {
+  const enemy = new THREE.Mesh(
+    new THREE.BoxGeometry(1,2,1),
+    new THREE.MeshLambertMaterial({ color: 0xff0000 })
+  );
+
+  enemy.position.set(
+    (Math.random()-0.5)*50,
+    1,
+    -50 - Math.random()*50
+  );
+
+  scene.add(enemy);
+  enemies.push(enemy);
+}
+
+setInterval(spawnEnemy, 3000);
+
+// ===== CONTROLES MOBILE =====
+document.getElementById("shootBtn").onclick = shoot;
+document.getElementById("buildBtn").onclick = buildWall;
+document.getElementById("jumpBtn").onclick = () => {
+  if (canJump) {
+    velocityY = 0.2;
+    canJump = false;
+  }
+};
+
+// ===== GRAVIDADE + LOOP =====
 function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    camera.lookAt(player.position);
-    renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+
+  velocityY -= 0.01;
+  player.position.y += velocityY;
+
+  if (player.position.y <= 1) {
+    player.position.y = 1;
+    velocityY = 0;
+    canJump = true;
+  }
+
+  camera.position.x = player.position.x;
+  camera.position.z = player.position.z + 5;
+  camera.lookAt(player.position);
+
+  renderer.render(scene, camera);
 }
 animate();
+
+// ===== RESPONSIVO =====
+addEventListener("resize", () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
