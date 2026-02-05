@@ -15,19 +15,24 @@ body { margin:0; overflow:hidden; background:black; font-family:sans-serif; }
   z-index:10;
 }
 
-button {
+.btn {
   position:fixed;
-  padding:14px;
-  font-size:18px;
-  border:none;
+  width:60px;
+  height:60px;
   border-radius:12px;
-  opacity:0.85;
-  z-index:10;
+  border:none;
+  font-size:24px;
+  opacity:0.8;
 }
 
-#shootBtn { right:20px; bottom:120px; background:red; color:white; }
-#buildBtn { right:20px; bottom:60px; background:orange; }
-#jumpBtn  { left:20px; bottom:60px; background:cyan; }
+#up { left:80px; bottom:140px; }
+#down { left:80px; bottom:20px; }
+#left { left:20px; bottom:80px; }
+#right { left:140px; bottom:80px; }
+
+#jump { right:20px; bottom:140px; background:deepskyblue; }
+#shoot { right:20px; bottom:70px; background:red; }
+#build { right:20px; bottom:0px; background:orange; }
 </style>
 </head>
 <body>
@@ -37,13 +42,16 @@ HP: <span id="hp">100</span><br>
 Kills: <span id="kills">0</span>
 </div>
 
-<button id="shootBtn">🔫</button>
-<button id="buildBtn">🧱</button>
-<button id="jumpBtn">⬆️</button>
+<button class="btn" id="up">⬆️</button>
+<button class="btn" id="down">⬇️</button>
+<button class="btn" id="left">⬅️</button>
+<button class="btn" id="right">➡️</button>
 
-<script src="/socket.io/socket.io.js"></script>
+<button class="btn" id="jump">🦘</button>
+<button class="btn" id="shoot">🔫</button>
+<button class="btn" id="build">🧱</button>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="game.js"></script>
-
 </body>
 </html>
