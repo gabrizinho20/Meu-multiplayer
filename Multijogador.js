@@ -9,7 +9,7 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
 // Diz ao servidor para usar a pasta "public"
-app.use(express.static("public"));
+app.use(express.static("Public"));
 
 let players = {};
 
