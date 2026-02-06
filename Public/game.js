@@ -3,13 +3,22 @@
 // --------------------
 let scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
+
 let camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0,5,10);
+camera.lookAt(0,0,0);
+
 let renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-let light = new THREE.HemisphereLight(0xffffff, 0x444444);
-scene.add(light);
+// Luzes
+let hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+scene.add(hemiLight);
+
+let dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(10,20,10);
+scene.add(dirLight);
 
 // --------------------
 // CHÃO
@@ -35,31 +44,27 @@ function spawnTree(x,z){
 for(let i=0;i<50;i++){spawnTree((Math.random()-0.5)*200,(Math.random()-0.5)*200);}
 
 // --------------------
-// PLAYER LOCAL
+// PLAYER
 // --------------------
 let player = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshLambertMaterial({color:0x0000ff}));
 player.position.y = 1;
 scene.add(player);
 
 // --------------------
-// HUD
+// HUD e MINI-MAPA
 // --------------------
-let hp=100,kills=0;
+let hp = 100, kills = 0;
 const hpUI = document.getElementById("hp");
 const killsUI = document.getElementById("kills");
 
-// Mini-map
-const miniMap = document.createElement("canvas");
-miniMap.width=150; miniMap.height=150; miniMap.style.position="fixed";
-miniMap.style.right="10px"; miniMap.style.top="10px"; miniMap.style.background="rgba(0,0,0,0.5)";
-miniMap.style.border="2px solid white"; document.body.appendChild(miniMap);
+const miniMap = document.getElementById("miniMap");
 let miniCtx = miniMap.getContext("2d");
 
 // --------------------
 // ANALÓGICOS
 // --------------------
-let moveX=0,moveZ=0,lookX=0,lookY=0;
-let speed=0.15, velocityY=0, gravity=-0.01, onGround=true;
+let moveX=0, moveZ=0, lookX=0, lookY=0;
+let speed=0.15, velocityY=0, gravity=-0.01;
 
 // Esquerdo
 const joystick=document.getElementById("joystick");
@@ -72,8 +77,25 @@ joystick.addEventListener("touchend",e=>{for(const t of e.changedTouches){if(t.i
 // Direito
 let lookJoystick=document.createElement("div");
 lookJoystick.id="lookJoystick";
-lookJoystick.style.position="fixed"; lookJoystick.style.right="20px"; lookJoystick.style.bottom="200px"; lookJoystick.style.width="150px"; lookJoystick.style.height="150px"; lookJoystick.style.borderRadius="50%"; lookJoystick.style.background="rgba(255,255,255,0.2)"; lookJoystick.style.touchAction="none";
-let lookStick=document.createElement("div"); lookStick.style.position="absolute"; lookStick.style.left="50%"; lookStick.style.top="50%"; lookStick.style.width="60px"; lookStick.style.height="60px"; lookStick.style.margin="-30px 0 0 -30px"; lookStick.style.borderRadius="50%"; lookStick.style.background="rgba(255,255,255,0.5)"; lookJoystick.appendChild(lookStick);
+lookJoystick.style.position="fixed";
+lookJoystick.style.right="20px";
+lookJoystick.style.bottom="200px";
+lookJoystick.style.width="150px";
+lookJoystick.style.height="150px";
+lookJoystick.style.borderRadius="50%";
+lookJoystick.style.background="rgba(255,255,255,0.2)";
+lookJoystick.style.touchAction="none";
+
+let lookStick=document.createElement("div");
+lookStick.style.position="absolute";
+lookStick.style.left="50%";
+lookStick.style.top="50%";
+lookStick.style.width="60px";
+lookStick.style.height="60px";
+lookStick.style.margin="-30px 0 0 -30px";
+lookStick.style.borderRadius="50%";
+lookStick.style.background="rgba(255,255,255,0.5)";
+lookJoystick.appendChild(lookStick);
 document.body.appendChild(lookJoystick);
 
 let touchIdRight=null,startXRight,startYRight;
@@ -134,10 +156,11 @@ let enemies=[]; function spawnEnemy(){let enemy=new THREE.Mesh(new THREE.BoxGeom
 // --------------------
 function animate(){
   requestAnimationFrame(animate);
+  
   // MOVIMENTO
   player.position.x += moveX*speed;
   player.position.z += moveZ*speed;
-  velocityY += gravity; player.position.y += velocityY; if(player.position.y<=1){player.position.y=1; velocityY=0; onGround=true;}
+  velocityY += gravity; player.position.y += velocityY; if(player.position.y<=1){player.position.y=1; velocityY=0;}
   
   bullets.forEach((b,bi)=>{b.position.add(b.userData.vel); enemies.forEach((e,ei)=>{if(b.position.distanceTo(e.position)<1){scene.remove(e);scene.remove(b);createExplosionEffect(e.position); enemies.splice(ei,1); bullets.splice(bi,1); kills++; killsUI.innerText=kills;}});});
   
@@ -147,11 +170,12 @@ function animate(){
   // CAMERA
   camera.position.x = player.position.x + lookX*5;
   camera.position.z = player.position.z + 8 + lookY*5;
+  camera.position.y = player.position.y + 5;
   camera.lookAt(player.position);
   
   // MINI MAP
   miniCtx.clearRect(0,0,150,150);
-  miniCtx.fillStyle="white"; miniCtx.fillRect(75,75,5,5); // player center
+  miniCtx.fillStyle="white"; miniCtx.fillRect(75,75,5,5);
   enemies.forEach(e=>{miniCtx.fillStyle="red"; miniCtx.fillRect(75+(e.position.x-player.position.x)/4,75+(e.position.z-player.position.z)/4,3,3);});
   
   renderer.render(scene,camera);
