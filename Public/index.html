@@ -2,48 +2,31 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Fortnite Mobile God Mode</title>
+<title>Ultra God Mode Ultimate</title>
 <style>
-  body {margin:0; overflow:hidden; background:black; font-family:sans-serif;}
-  /* HUD */
-  #hud {position:fixed; top:10px; left:10px; color:white; z-index:10; font-size:18px;}
-  /* Mini-map */
-  #miniMap {position:fixed; right:10px; top:10px; border:2px solid white; z-index:10;}
-  /* Joystick esquerdo */
-  #joystick {position:fixed; left:20px; bottom:20px; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,0.2); touch-action:none; z-index:10;}
-  #stick {position:absolute; left:50%; top:50%; width:60px; height:60px; margin:-30px 0 0 -30px; border-radius:50%; background:rgba(255,255,255,0.5);}
-  /* Botões de ação */
-  button {position:fixed; width:60px; height:60px; border-radius:50%; font-size:24px; color:white; border:none; z-index:10;}
-  #shoot {right:20px; bottom:50px; background:red;}
-  #build {right:100px; bottom:50px; background:gray;}
-  #ramp {right:180px; bottom:50px; background:purple;}
-  #grenade {right:260px; bottom:50px; background:green;}
-  #changeWeapon {right:340px; bottom:50px; background:orange;}
+body{margin:0;overflow:hidden;font-family:sans-serif;background:#000;}
+#joystick,#stick{position:fixed;bottom:50px;left:50px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,0.2);}
+#stick{position:absolute;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:rgba(255,255,255,0.5);}
+button{position:fixed;width:80px;height:80px;background:rgba(255,255,255,0.5);border-radius:10px;font-size:16px;}
+#shoot{right:20px;bottom:50px;} #changeWeapon{right:20px;bottom:140px;}
+#build{right:20px;bottom:230px;} #ramp{right:20px;bottom:320px;} #grenade{right:20px;bottom:410px;}
+#hp,#kills{position:fixed;color:white;font-size:20px;top:10px;}
+#miniMap{position:fixed;right:10px;top:10px;border:2px solid white;background:rgba(0,0,0,0.5);}
 </style>
 </head>
 <body>
-
-<div id="hud">
-  HP: <span id="hp">100</span><br>
-  Kills: <span id="kills">0</span>
-</div>
-
+<div id="joystick"><div id="stick"></div></div>
+<button id="shoot">Atirar</button>
+<button id="changeWeapon">Trocar</button>
+<button id="build">Paredes</button>
+<button id="ramp">Rampas</button>
+<button id="grenade">Granada</button>
+<div id="hp">HP: 100</div>
+<div id="kills">Kills: 0</div>
 <canvas id="miniMap" width="150" height="150"></canvas>
 
-<div id="joystick"><div id="stick"></div></div>
-
-<button id="shoot">🔫</button>
-<button id="build">🧱</button>
-<button id="ramp">🏗️</button>
-<button id="grenade">💣</button>
-<button id="changeWeapon">🔁</button>
-
-<!-- Socket.io para multiplayer -->
-<script src="/socket.io/socket.io.js"></script>
-<!-- Three.js para 3D -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<!-- Seu game.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="game.js"></script>
-
 </body>
 </html>
