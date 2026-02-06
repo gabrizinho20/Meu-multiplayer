@@ -285,3 +285,42 @@ setInterval(() => {
 }, 1000);
 
 animate();
+
+// --- LÓGICA DO ANALÓGICO (JOYSTICK) ---
+const base = document.getElementById('joy-base');
+const stick = document.getElementById('joy-stick');
+let active = false;
+
+base.addEventListener('touchstart', (e) => { active = true; });
+window.addEventListener('touchend', () => { 
+    active = false; 
+    stick.style.top = '35px'; 
+    stick.style.left = '35px';
+    moveX = 0; moveZ = 0; // Para o personagem
+});
+
+window.addEventListener('touchmove', (e) => {
+    if (!active) return;
+    const touch = e.touches[0];
+    const rect = base.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Calcula a distância do centro
+    let dx = touch.clientX - centerX;
+    let dy = touch.clientY - centerY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const max = 40; // Limite do círculo
+
+    if (dist > max) {
+        dx *= max / dist;
+        dy *= max / dist;
+    }
+
+    stick.style.left = (35 + dx) + 'px';
+    stick.style.top = (35 + dy) + 'px';
+
+    // ATUALIZA AS VARIÁVEIS DO TEU CÓDIGO
+    moveX = dx / max;
+    moveZ = dy / max;
+});
