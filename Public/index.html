@@ -3,89 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini Battle Royale</title>
+    <title>Apex Nature vFinal</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; }
         canvas { display: block; }
 
-        /* HUD SUPERIOR - INFO DA PARTIDA */
-        #top-hud {
-            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-            width: 90%; display: flex; justify-content: space-between; z-index: 10;
-            pointer-events: none;
-        }
-        .info-box {
-            background: rgba(0, 0, 0, 0.6); color: #fff; padding: 8px 15px;
-            border-radius: 8px; border-bottom: 3px solid #ffff00; text-align: center;
-        }
-
-        /* BARRA DE VIDA CENTRAL */
-        #health-container {
-            position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
-            width: 200px; height: 20px; background: rgba(0,0,0,0.5);
-            border: 2px solid #fff; border-radius: 10px; overflow: hidden; z-index: 10;
-        }
+        /* HUD de Status (Vida e Escudo) */
+        #hud { position: fixed; top: 20px; left: 20px; pointer-events: none; }
+        .bar-bg { width: 200px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #fff; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+        #shield-bar { width: 50%; height: 100%; background: #00eaff; transition: width 0.3s; }
         #health-bar { width: 100%; height: 100%; background: #ff4444; transition: width 0.3s; }
+        #wood-ui { color: #fff; font-size: 18px; font-weight: bold; text-shadow: 2px 2px #000; }
 
-        /* ANALÓGICO ESQUERDO */
-        #joystick {
-            position: fixed; bottom: 40px; left: 40px;
-            width: 120px; height: 120px; background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; z-index: 20;
-        }
-        #stick {
-            position: absolute; left: 35px; top: 35px;
-            width: 50px; height: 50px; background: rgba(255,255,255,0.4);
-            border-radius: 50%; transition: transform 0.1s;
-        }
+        /* Mensagens de Jogo (Lobby/Dropship) */
+        #game-msg { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
 
-        /* ÁREA DE BOTÕES DE AÇÃO (DIREITA) */
-        #action-buttons {
-            position: fixed; bottom: 40px; right: 20px;
-            display: grid; grid-template-columns: repeat(2, 70px); gap: 15px; z-index: 20;
-        }
-        .btn {
-            width: 70px; height: 70px; background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #fff; border-radius: 50%; color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; active: transform: scale(0.9);
-            -webkit-user-select: none;
-        }
-        .btn-build { background: rgba(0, 100, 255, 0.6); border-color: #00eaff; }
-
-        /* MENSAGEM DO LOBBY / STATUS */
-        #game-msg {
-            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-            color: #fff; text-align: center; font-weight: bold;
-            text-shadow: 2px 2px #000; z-index: 5; font-size: 1.2em;
-        }
+        /* Botões de Controle */
+        #controls { position: fixed; bottom: 30px; right: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { width: 75px; height: 75px; background: rgba(255,255,255,0.2); border: 3px solid #fff; border-radius: 50%; 
+                display: flex; align-items: center; justify-content: center; font-size: 30px; color: white; cursor: pointer; user-select: none; }
+        .btn:active { background: rgba(255,255,255,0.5); }
     </style>
 </head>
 <body>
 
-    <div id="top-hud">
-        <div class="info-box">🪓 <span id="wood-count">0</span></div>
-        <div class="info-box">🌀 <span id="storm-dist">250</span>m</div>
+    <div id="hud">
+        <div class="bar-bg"><div id="shield-bar"></div></div>
+        <div class="bar-bg"><div id="health-bar"></div></div>
+        <div id="wood-ui">🪓 Madeira: <span id="wood-count">100</span></div>
     </div>
 
-    <div id="game-msg">AGUARDANDO LOBBY...</div>
+    <div id="game-msg"></div>
 
-    <div id="health-container">
-        <div id="health-bar"></div>
-    </div>
-
-    <div id="joystick"><div id="stick"></div></div>
-
-    <div id="action-buttons">
-        <div class="btn btn-build" id="build">🧱</div>
-        <div class="btn" id="shoot">🔫</div>
-        <div class="btn" id="jump">🦘</div>
-        <div class="btn" id="edit">🔧</div>
+    <div id="controls">
+        <div id="build" class="btn">🧱</div>
+        <div id="jump" class="btn">🚀</div>
+        <div id="edit" class="btn">🛡️</div>
+        <div id="shoot" class="btn">🔫</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
-
 </body>
 </html>
