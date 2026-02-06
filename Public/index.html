@@ -3,47 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Apex Nature vFinal</title>
+    <title>APEX NATURE ULTIMATE - MOBILE</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; }
-        canvas { display: block; }
-
-        /* HUD de Status (Vida e Escudo) */
-        #hud { position: fixed; top: 20px; left: 20px; pointer-events: none; }
-        .bar-bg { width: 200px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #fff; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
-        #shield-bar { width: 50%; height: 100%; background: #00eaff; transition: width 0.3s; }
-        #health-bar { width: 100%; height: 100%; background: #ff4444; transition: width 0.3s; }
-        #wood-ui { color: #fff; font-size: 18px; font-weight: bold; text-shadow: 2px 2px #000; }
-
-        /* Mensagens de Jogo (Lobby/Dropship) */
-        #game-msg { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
-
-        /* Botões de Controle */
-        #controls { position: fixed; bottom: 30px; right: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { width: 75px; height: 75px; background: rgba(255,255,255,0.2); border: 3px solid #fff; border-radius: 50%; 
-                display: flex; align-items: center; justify-content: center; font-size: 30px; color: white; cursor: pointer; user-select: none; }
-        .btn:active { background: rgba(255,255,255,0.5); }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; }
+        canvas { display: block; touch-action: none; }
+        #ui { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #stats { position: absolute; bottom: 20px; left: 20px; width: 200px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; }
+        .bar { width: 100%; height: 10px; background: #222; border-radius: 5px; margin: 4px 0; overflow: hidden; }
+        #hp-bar { width: 100%; height: 100%; background: #ff4444; transition: 0.3s; }
+        #sh-bar { width: 50%; height: 100%; background: #00eaff; transition: 0.3s; }
+        #joy-base { position: absolute; bottom: 40px; left: 40px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid #fff; pointer-events: auto; }
+        #joy-stick { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: #fff; border-radius: 50%; }
+        #btns { position: absolute; bottom: 30px; right: 20px; display: grid; grid-template-columns: 70px 70px; gap: 10px; pointer-events: auto; }
+        .btn { width: 70px; height: 70px; background: rgba(255,255,255,0.1); border: 2px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 25px; color: #fff; }
     </style>
 </head>
 <body>
-
-    <div id="hud">
-        <div class="bar-bg"><div id="shield-bar"></div></div>
-        <div class="bar-bg"><div id="health-bar"></div></div>
-        <div id="wood-ui">🪓 Madeira: <span id="wood-count">100</span></div>
-    </div>
-
-    <div id="game-msg"></div>
-
-    <div id="controls">
-        <div id="build" class="btn">🧱</div>
-        <div id="jump" class="btn">🚀</div>
-        <div id="edit" class="btn">🛡️</div>
-        <div id="shoot" class="btn">🔫</div>
+    <div id="ui">
+        <div id="stats">
+            <div class="bar"><div id="sh-bar"></div></div>
+            <div class="bar"><div id="hp-bar"></div></div>
+            <div style="color:#fff; font-size:12px">MADEIRA: <span id="w-val">100</span></div>
+        </div>
+        <div id="joy-base"><div id="joy-stick"></div></div>
+        <div id="btns">
+            <div class="btn" id="b-wall">🧱</div>
+            <div class="btn" id="b-bub">🛡️</div>
+            <div class="btn" id="b-jump">🚀</div>
+            <div class="btn" id="b-fire">💥</div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="game.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <script>
+        // --- CONEXÃO COM RENDER ---
+        // TROQUE O LINK ABAIXO PELO SEU LINK DO RENDER!
+        const socket = io("https://COLOQUE_AQUI_SEU_LINK_DO_RENDER");
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshLambertMaterial({color: 0x2e7d32}));
+        ground.rotation.x = -Math.PI/2;
+        scene.add(ground);
+
+        let hp = 100, shield = 50, wood = 100, moveX = 0, moveZ = 0, velY = 0;
+        const players = {};
+
+        function createModel(color) {
+            const g = new THREE.Group();
+            const b = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.6), new THREE.MeshLambertMaterial({color}));
+            const h = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshLambertMaterial({color: 0xffdbac}));
+            h.position.y = 1.1; g.add(b, h); return g;
+        }
+        const player = createModel(0x0055ff); scene.add(player);
+
+        socket.on('state', (data) => {
+            for(let id in data) {
+                if(id === socket.id) { hp = data[id].hp; continue; }
+                if(!players[id]) { players[id] = createModel(0xff3300); scene.add(players[id]); }
+                players[id].position.lerp(new THREE.Vector3(data[id].x, data[id].y, data[id].z), 0.2);
+                players[id].rotation.y = data[id].ry;
+            }
+            for(let id in players) if(!data[id]) { scene.remove(players[id]); delete players[id]; }
+        });
+
+        // --- CONTROLES ---
+        const jBase = document.getElementById('joy-base'), jStick = document.getElementById('joy-stick');
+        jBase.addEventListener('touchmove', (e) => {
+            const r = jBase.getBoundingClientRect();
+            const dx = e.touches[0].clientX - (r.left + 50), dy = e.touches[0].clientY - (r.top + 50);
+            const d = Math.min(Math.sqrt(dx*dx+dy*dy), 35);
+            const a = Math.atan2(dy, dx);
+            jStick.style.transform = `translate(${Math.cos(a)*d}px, ${Math.sin(a)*d}px)`;
+            moveX = Math.cos(a)*(d/35); moveZ = Math.sin(a)*(d/35);
+        });
+        jBase.addEventListener('touchend', () => { moveX = 0; moveZ = 0; jStick.style.transform = 'translate(0,0)'; });
+
+        document.getElementById('b-fire').ontouchstart = () => {
+            const dir = new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);
+            const ray = new THREE.Raycaster(player.position, dir);
+            const hits = ray.intersectObjects(Object.values(players), true);
+            if(hits.length > 0) {
+                const id = Object.keys(players).find(k => players[k] === hits[0].object.parent);
+                if(id) socket.emit('hit', id);
+            }
+        };
+        document.getElementById('b-jump').ontouchstart = () => { if(player.position.y <= 0.1) velY = 0.2; };
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(Math.abs(moveX) > 0.1 || Math.abs(moveZ) > 0.1) {
+                player.position.x += moveX * 0.2; player.position.z += moveZ * 0.2;
+                player.rotation.y = Math.atan2(-moveX, -moveZ);
+            }
+            player.position.y += velY;
+            if(player.position.y > 0) velY -= 0.01; else { player.position.y = 0; velY = 0; }
+
+            document.getElementById('hp-bar').style.width = hp + "%";
+            document.getElementById('w-val').innerText = wood;
+
+            socket.emit('move', { x: player.position.x, y: player.position.y, z: player.position.z, ry: player.rotation.y });
+            camera.position.lerp(new THREE.Vector3(player.position.x, player.position.y + 8, player.position.z + 12), 0.1);
+            camera.lookAt(player.position);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
 </body>
 </html>
