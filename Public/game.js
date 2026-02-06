@@ -1,163 +1,147 @@
-// --------------------
-// SETUP THREE
-// --------------------
+// -----------------------------------------------------------
+// ULTRA GOD MODE - PATINHOS COM IA + INVENTÁRIO + NATUREZA
+// -----------------------------------------------------------
+
 let scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-let camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(0,5,10);
-camera.lookAt(0,0,0);
-let renderer = new THREE.WebGLRenderer({antialias:true});
+scene.fog = new THREE.FogExp2(0x87ceeb, 0.01);
+
+let camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-let hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); scene.add(hemiLight);
-let dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(10,20,10); scene.add(dirLight);
+// LUZES
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
+let sun = new THREE.DirectionalLight(0xffffff, 1);
+sun.position.set(50, 50, 50);
+sun.castShadow = true;
+scene.add(sun);
 
-// --------------------
 // CHÃO
-// --------------------
-let ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(500,500),
-  new THREE.MeshLambertMaterial({color:0x228B22})
-);
-ground.rotation.x = -Math.PI/2; scene.add(ground);
+let ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshLambertMaterial({ color: 0x3d8c40 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
 
-// --------------------
-// ÁRVORES
-// --------------------
-let trees = [];
-function spawnTree(x,z){
-  let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,3), new THREE.MeshLambertMaterial({color:0x8B4513}));
-  trunk.position.set(x,1.5,z);
-  let leaves = new THREE.Mesh(new THREE.ConeGeometry(1.5,3,8), new THREE.MeshLambertMaterial({color:0x00aa00}));
-  leaves.position.set(x,4.5,z);
-  scene.add(trunk); scene.add(leaves); trees.push(trunk,leaves);
+// --- SISTEMA DE INVENTÁRIO ---
+let inventory = { madeira: 0 };
+let hp = 100;
+const hpUI = document.getElementById("hp");
+let woodUI = document.createElement("div");
+woodUI.style = "position:fixed; top:40px; left:10px; color:white; font-size:20px; font-family:sans-serif; text-shadow: 2px 2px #000;";
+document.body.appendChild(woodUI);
+
+function updateUI() {
+    woodUI.innerText = "🪓 Madeira: " + inventory.madeira;
+    if(hpUI) hpUI.innerText = "❤️ HP: " + hp;
 }
-for(let i=0;i<50;i++){spawnTree((Math.random()-0.5)*200,(Math.random()-0.5)*200);}
 
-// --------------------
-// PLAYER
-// --------------------
-let player = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshLambertMaterial({color:0x0000ff}));
+// --- ENTIDADES (PATINHOS, ÁRVORES, ETC) ---
+let ducks = [];
+function createDuck(x, z) {
+    let duck = new THREE.Group();
+    let body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.8), new THREE.MeshLambertMaterial({ color: 0xffff00 }));
+    let head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshLambertMaterial({ color: 0xffff00 }));
+    let beak = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.2), new THREE.MeshLambertMaterial({ color: 0xffa500 }));
+    body.position.y = 0.2; head.position.set(0, 0.5, 0.3); beak.position.set(0, 0.5, 0.5);
+    duck.add(body, head, beak); duck.position.set(x, 0, z);
+    
+    // IA do Patinho: velocidade e direção aleatória
+    duck.userData = { 
+        dir: new THREE.Vector3((Math.random()-0.5), 0, (Math.random()-0.5)).normalize(),
+        timer: 0 
+    };
+    
+    scene.add(duck);
+    ducks.push(duck);
+}
+
+// Gerar Natureza
+for(let i=0; i<60; i++) {
+    let rx = (Math.random()-0.5)*200; let rz = (Math.random()-0.5)*200;
+    if(i < 30) { // Árvores
+        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2), new THREE.MeshLambertMaterial({ color: 0x5d4037 }));
+        let leaves = new THREE.Mesh(new THREE.ConeGeometry(1.5, 3, 8), new THREE.MeshLambertMaterial({ color: 0x1b5e20 }));
+        trunk.position.set(rx, 1, rz); leaves.position.set(rx, 3, rz);
+        scene.add(trunk, leaves);
+    }
+    if(i < 15) createDuck((Math.random()-0.5)*100, (Math.random()-0.5)*100);
+}
+
+// --- LOOT (MADEIRA NO CHÃO) ---
+let loots = [];
+function spawnWood() {
+    let wood = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
+    wood.rotation.z = Math.PI/2;
+    wood.position.set((Math.random()-0.5)*150, 0.1, (Math.random()-0.5)*150);
+    scene.add(wood);
+    loots.push(wood);
+}
+setInterval(spawnWood, 4000);
+
+// --- PLAYER E CONSTRUÇÃO ---
+let player = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshLambertMaterial({ color: 0x1a237e }));
 player.position.y = 1; scene.add(player);
 
-// --------------------
-// HUD + MINI MAP
-// --------------------
-let hp=100, kills=0;
-const hpUI = document.getElementById("hp");
-const killsUI = document.getElementById("kills");
-const miniMap = document.getElementById("miniMap");
-let miniCtx = miniMap.getContext("2d");
+let ghost = new THREE.Mesh(new THREE.BoxGeometry(3, 2.5, 0.5), new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4 }));
+scene.add(ghost);
 
-// --------------------
-// ANALÓGICOS
-// --------------------
+// BOTÕES
+document.getElementById("build").ontouchstart = () => build("wall");
+document.getElementById("ramp").ontouchstart = () => build("ramp");
+
+function build(type) {
+    if(inventory.madeira >= 10) {
+        inventory.madeira -= 10;
+        let b = new THREE.Mesh(ghost.geometry.clone(), new THREE.MeshLambertMaterial({ color: 0x757575 }));
+        b.position.copy(ghost.position); b.rotation.copy(ghost.rotation);
+        scene.add(b); updateUI();
+    } else { alert("Falta madeira!"); }
+}
+
+// --- LOOP DE ANIMAÇÃO ---
 let moveX=0, moveZ=0, lookX=0, lookY=0;
-let speed=0.15, velocityY=0, gravity=-0.01;
+function animate() {
+    requestAnimationFrame(animate);
+    
+    // Movimento Jogador
+    player.position.x += moveX * 0.2; player.position.z += moveZ * 0.2;
+    ghost.position.set(Math.round(player.position.x/3)*3, 1.25, Math.round((player.position.z-4)/3)*3);
 
-// Esquerdo
-const joystick=document.getElementById("joystick");
-const stick=document.getElementById("stick");
-let touchIdLeft=null,startXLeft,startYLeft;
-joystick.addEventListener("touchstart",e=>{e.preventDefault(); const t=e.changedTouches[0]; touchIdLeft=t.identifier; startXLeft=t.clientX; startYLeft=t.clientY;});
-joystick.addEventListener("touchmove",e=>{for(const t of e.changedTouches){if(t.identifier!==touchIdLeft) continue; let dx=t.clientX-startXLeft,dy=t.clientY-startYLeft;let max=50;if(Math.hypot(dx,dy)>max){let angle=Math.atan2(dy,dx);dx=Math.cos(angle)*max;dy=Math.sin(angle)*max;} stick.style.transform=`translate(${dx}px,${dy}px)`; moveX=dx/50; moveZ=dy/50;}});
-joystick.addEventListener("touchend",e=>{for(const t of e.changedTouches){if(t.identifier!==touchIdLeft) continue; touchIdLeft=null; moveX=0; moveZ=0; stick.style.transform="translate(0px,0px)";}});
+    // IA DOS PATINHOS
+    ducks.forEach(duck => {
+        let dist = duck.position.distanceTo(player.position);
+        
+        if(dist < 8) { // FUGIR
+            let escapeDir = new THREE.Vector3().subVectors(duck.position, player.position).normalize();
+            duck.position.addScaledVector(escapeDir, 0.15); // Velocidade de fuga
+            duck.lookAt(duck.position.x + escapeDir.x, 0, duck.position.z + escapeDir.z);
+        } else { // ANDAR ALEATÓRIO
+            duck.userData.timer++;
+            if(duck.userData.timer > 100) {
+                duck.userData.dir.set((Math.random()-0.5), 0, (Math.random()-0.5)).normalize();
+                duck.userData.timer = 0;
+            }
+            duck.position.addScaledVector(duck.userData.dir, 0.03);
+            duck.lookAt(duck.position.x + duck.userData.dir.x, 0, duck.position.z + duck.userData.dir.z);
+        }
+    });
 
-// Direito
-let lookJoystick=document.createElement("div"); lookJoystick.id="lookJoystick";
-lookJoystick.style.position="fixed"; lookJoystick.style.right="20px"; lookJoystick.style.bottom="200px";
-lookJoystick.style.width="150px"; lookJoystick.style.height="150px"; lookJoystick.style.borderRadius="50%";
-lookJoystick.style.background="rgba(255,255,255,0.2)"; lookJoystick.style.touchAction="none";
-let lookStick=document.createElement("div"); lookStick.style.position="absolute"; lookStick.style.left="50%"; lookStick.style.top="50%";
-lookStick.style.width="60px"; lookStick.style.height="60px"; lookStick.style.margin="-30px 0 0 -30px"; lookStick.style.borderRadius="50%";
-lookStick.style.background="rgba(255,255,255,0.5)"; lookJoystick.appendChild(lookStick);
-document.body.appendChild(lookJoystick);
-let touchIdRight=null,startXRight,startYRight;
-lookJoystick.addEventListener("touchstart",e=>{e.preventDefault(); const t=e.changedTouches[0]; touchIdRight=t.identifier; startXRight=t.clientX; startYRight=t.clientY;});
-lookJoystick.addEventListener("touchmove",e=>{for(const t of e.changedTouches){if(t.identifier!==touchIdRight) continue; let dx=t.clientX-startXRight,dy=t.clientY-startYRight;let max=50;if(Math.hypot(dx,dy)>max){let angle=Math.atan2(dy,dx);dx=Math.cos(angle)*max;dy=Math.sin(angle)*max;} lookStick.style.transform=`translate(${dx}px,${dy}px)`; lookX=dx/50; lookY=dy/50;}});
-lookJoystick.addEventListener("touchend",e=>{for(const t of e.changedTouches){if(t.identifier!==touchIdRight) continue; touchIdRight=null; lookX=0; lookY=0; lookStick.style.transform="translate(0px,0px)";}});
+    // Coleta de Madeira
+    loots.forEach((l, i) => {
+        if(player.position.distanceTo(l.position) < 2) {
+            scene.remove(l); loots.splice(i, 1);
+            inventory.madeira += 5; updateUI();
+        }
+    });
 
-// --------------------
-// ARMAS + LOOT
-// --------------------
-let weapons=[{name:"Pistola",damage:10,speed:0.6,color:0xffff00},{name:"Rifle",damage:20,speed:1.0,color:0xffaa00},{name:"Sniper",damage:50,speed:1.5,color:0xff0000}];
-for(let i=0;i<20;i++){weapons.push({name:"Weapon"+(i+1),damage:5+Math.floor(Math.random()*50),speed:0.5+Math.random()*2,color:Math.random()*0xffffff});}
-let currentWeapon=0, bullets=[];
-
-document.getElementById("shoot").ontouchstart=()=>shootWeapon();
-document.getElementById("changeWeapon").ontouchstart=()=>{currentWeapon=(currentWeapon+1)%weapons.length;};
-
-function shootWeapon(){
-  const w=weapons[currentWeapon];
-  let bullet=new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({color:w.color}));
-  bullet.position.copy(player.position);
-  bullet.userData={vel:new THREE.Vector3(lookX*0.6,0,-w.speed), damage:w.damage};
-  scene.add(bullet); bullets.push(bullet);
-  createExplosionEffect(bullet.position);
-  socket.emit("shoot",{pos:bullet.position,vel:bullet.userData.vel,damage:w.damage});
+    // Câmera Suave
+    camera.position.lerp(new THREE.Vector3(player.position.x + lookX*7, 7, player.position.z + 12), 0.1);
+    camera.lookAt(player.position);
+    
+    renderer.render(scene, camera);
 }
-
-// Loot
-let lootItems=[];
-function spawnLoot(){let w=weapons[Math.floor(Math.random()*weapons.length)]; let loot=new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:w.color})); loot.position.set((Math.random()-0.5)*50,0.5,(Math.random()-0.5)*50); loot.userData={weapon:w}; scene.add(loot); lootItems.push(loot);}
-setInterval(()=>{if(lootItems.length<10) spawnLoot();},5000);
-function collectLoot(){lootItems.forEach((l,li)=>{if(player.position.distanceTo(l.position)<1.5){weapons.push(l.userData.weapon); scene.remove(l); lootItems.splice(li,1);}});}
-
-// --------------------
-// EXPLOSÕES
-// --------------------
-function createExplosionEffect(pos){
-  let geo=new THREE.SphereGeometry(0.5,8,8);
-  let mat=new THREE.MeshBasicMaterial({color:0xffaa00});
-  let exp=new THREE.Mesh(geo,mat); exp.position.copy(pos);
-  scene.add(exp);
-  setTimeout(()=>{scene.remove(exp);},300);
-}
-
-// --------------------
-// CONSTRUÇÃO + GRANADAS
-// --------------------
-let builds=[];
-document.getElementById("build").ontouchstart=()=>{let wall=new THREE.Mesh(new THREE.BoxGeometry(2,2,0.5), new THREE.MeshLambertMaterial({color:0x888888})); wall.position.set(player.position.x,1,player.position.z-3); scene.add(wall); builds.push(wall); socket.emit("build",{type:"wall",pos:wall.position});};
-document.getElementById("ramp").ontouchstart=()=>{let ramp=new THREE.Mesh(new THREE.BoxGeometry(3,0.5,4), new THREE.MeshLambertMaterial({color:0xaaaaaa})); ramp.rotation.x=-Math.PI/6; ramp.position.set(player.position.x,0.5,player.position.z-4); scene.add(ramp); builds.push(ramp); socket.emit("build",{type:"ramp",pos:ramp.position});};
-document.getElementById("grenade").ontouchstart=()=>{let grenade=new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({color:0x00ff00})); grenade.position.copy(player.position); scene.add(grenade); createExplosionEffect(grenade.position); setTimeout(()=>{Object.values(otherPlayers).forEach(p=>{if(p.mesh.position.distanceTo(grenade.position)<5)p.hp-=50;}); scene.remove(grenade);},1000);};
-
-// --------------------
-// MULTIPLAYER
-// --------------------
-let socket=io(); let otherPlayers={};
-socket.on("updatePlayers",data=>{for(const id in data){if(id===socket.id) continue; if(!otherPlayers[id]){let p=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshLambertMaterial({color:0xff00ff})); p.position.copy(data[id]); scene.add(p); otherPlayers[id]={mesh:p,hp:data[id].hp};} else{otherPlayers[id].mesh.position.copy(data[id]); otherPlayers[id].hp=data[id].hp;}}});
-
-// --------------------
-// NPCs
-// --------------------
-let enemies=[]; function spawnEnemy(){let enemy=new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshLambertMaterial({color:0xff0000})); enemy.position.set((Math.random()-0.5)*40,1,-30-Math.random()*40); scene.add(enemy); enemies.push(enemy);} setInterval(spawnEnemy,3000);
-
-// --------------------
-// LOOP PRINCIPAL
-// --------------------
-function checkCollision(player,obj){let px=player.position.x,pz=player.position.z; let sx=1,sz=1; let ox=obj.position.x,oz=obj.position.z; let osx=obj.geometry.parameters.width||2; let osz=obj.geometry.parameters.depth||2; return Math.abs(px-ox)<(sx/2+osx/2)&&Math.abs(pz-oz)<(sz/2+osz/2);}
-function animate(){
-  requestAnimationFrame(animate);
-  // MOVIMENTO
-  let nextX=player.position.x+moveX*speed;
-  let nextZ=player.position.z+moveZ*speed; let collision=false;
-  for(let b of builds){if(checkCollision({position:{x:nextX,z:nextZ}},b)){collision=true; break;}}
-  if(!collision){player.position.x=nextX; player.position.z=nextZ;}
-  velocityY+=gravity; player.position.y+=velocityY; if(player.position.y<=1)player.position.y=1;
-  // RAMPAS
-  for(let b of builds){if(b.rotation.x<0){let dx=player.position.x-b.position.x; let dz=player.position.z-b.position.z; if(Math.abs(dx)<1.5&&Math.abs(dz)<2){player.position.y=b.position.y+0.5; velocityY=0;}}}
-  // BULLETS
-  bullets.forEach((b,bi)=>{b.position.add(b.userData.vel); enemies.forEach((e,ei)=>{if(b.position.distanceTo(e.position)<1){scene.remove(e);scene.remove(b);createExplosionEffect(e.position); enemies.splice(ei,1); bullets.splice(bi,1); kills++; killsUI.innerText=kills;}});});
-  collectLoot();
-  socket.emit("move",{x:player.position.x,y:player.position.y,z:player.position.z,hp});
-  if(hp<=0){alert("VOCÊ MORREU!"); location.reload();}
-  camera.position.x=player.position.x+lookX*5; camera.position.z=player.position.z+8+lookY*5; camera.position.y=player.position.y+5; camera.lookAt(player.position);
-  // MINI MAP
-  miniCtx.clearRect(0,0,150,150); miniCtx.fillStyle="white"; miniCtx.fillRect(75,75,5,5);
-  enemies.forEach(e=>{miniCtx.fillStyle="red"; miniCtx.fillRect(75+(e.position.x-player.position.x)/4,75+(e.position.z-player.position.z)/4,3,3);});
-  renderer.render(scene,camera);
-}
+updateUI();
 animate();
-onresize=()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);};
